@@ -41,7 +41,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     </SliderTrack>
 
     <SliderThumb
-      v-for="(_, key) in modelValue"
+      v-for="key in modelValue?.keys()"
       :key="key"
       data-slot="slider-thumb"
       :data-vertical="props.orientation === 'vertical' ? '' : undefined"

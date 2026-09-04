@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, CheckCircle2, Clock3 } from '@lucide/vue'
+import { ArrowLeft, CheckCircle2, CircleDot, Clock3, LockKeyhole } from '@lucide/vue'
 import type { CatalogCourse } from '@/features/catalog/types/catalog'
 import {
+  canAccessLessonByCompletedLessonIds,
   getCurrentLessonByCompletedLessonIds,
   getLessonsByCourse,
 } from '@/features/lesson/utils/lesson-sequencing'
@@ -26,6 +27,12 @@ const catalogStore = useCatalogStore()
 const userStateStore = useUserStateStore()
 const course = ref<CatalogCourse | null>(null)
 const isLoading = ref(true)
+
+const availableLessons = computed(() => (course.value ? getLessonsByCourse(course.value) : []))
+const completedLessonIds = computed(() =>
+  course.value ? userStateStore.getCompletedLessonIdsByCourseId(course.value.id) : [],
+)
+
 const courseProgressPercentage = computed(() =>
   course.value
     ? userStateStore.getCourseProgressPercentage(course.value.id, course.value.lessonCount)
@@ -35,13 +42,23 @@ const isCourseStarted = computed(() =>
   course.value ? userStateStore.isCourseStarted(course.value.id) : false,
 )
 
+function isLessonCompleted(lessonId: string): boolean {
+  return completedLessonIds.value.includes(lessonId)
+}
+
+function isLessonAccessible(lessonId: string): boolean {
+  const lesson = availableLessons.value.find((availableLesson) => availableLesson.id === lessonId)
+  return lesson
+    ? canAccessLessonByCompletedLessonIds(lesson, availableLessons.value, completedLessonIds.value)
+    : false
+}
+
 async function startCourse(): Promise<void> {
   if (!course.value) return
 
-  const lessons = getLessonsByCourse(course.value)
   const targetLesson = getCurrentLessonByCompletedLessonIds(
-    lessons,
-    userStateStore.getCompletedLessonIdsByCourseId(course.value.id),
+    availableLessons.value,
+    completedLessonIds.value,
   )
   await userStateStore.startCourse(course.value.id, targetLesson?.id ?? null)
 
@@ -113,9 +130,9 @@ onMounted(loadCourse)
         </aside>
       </header>
 
-      <section class="grid gap-6 lg:grid-cols-[1fr_18rem]">
-        <div>
-          <h2 class="mb-4 text-2xl font-semibold tracking-tight">Course material</h2>
+      <section>
+        <h2 class="mb-4 text-2xl font-semibold tracking-tight">Course material</h2>
+        <div class="grid items-start gap-6 lg:grid-cols-[1fr_18rem]">
           <Accordion
             type="multiple"
             :default-value="course.modules.map((module) => module.id)"
@@ -129,33 +146,52 @@ onMounted(loadCourse)
                 <ol class="flex flex-col gap-1 pb-2">
                   <li v-for="lesson in module.lessons" :key="lesson.id">
                     <RouterLink
+                      v-if="isLessonAccessible(lesson.id)"
                       :to="{
                         name: 'lesson',
                         params: { courseSlug: course.slug, lessonSlug: lesson.slug },
                       }"
-                      class="flex items-center justify-between gap-4 rounded-lg px-3 py-3 hover:bg-muted"
+                      class="flex items-center justify-between gap-4 rounded-lg px-3 py-3 transition-colors hover:bg-muted"
                     >
                       <div class="flex min-w-0 items-center gap-3">
-                        <CheckCircle2 class="size-4 shrink-0 text-primary" />
+                        <CheckCircle2
+                          v-if="isLessonCompleted(lesson.id)"
+                          class="size-4 shrink-0 text-primary"
+                        />
+                        <CircleDot v-else class="size-4 shrink-0 text-primary" />
                         <span class="truncate text-sm font-medium">{{ lesson.title }}</span>
                       </div>
                       <span class="flex shrink-0 items-center gap-1 text-xs text-muted-foreground"
                         ><Clock3 class="size-3" />{{ lesson.durationMinutes }} min</span
                       >
                     </RouterLink>
+                    <div
+                      v-else
+                      class="flex items-center justify-between gap-4 rounded-lg px-3 py-3 text-muted-foreground opacity-60"
+                      aria-disabled="true"
+                    >
+                      <div class="flex min-w-0 items-center gap-3">
+                        <LockKeyhole class="size-4 shrink-0" />
+                        <span class="truncate text-sm font-medium">{{ lesson.title }}</span>
+                      </div>
+                      <span class="flex shrink-0 items-center gap-1 text-xs text-muted-foreground"
+                        ><Clock3 class="size-3" />{{ lesson.durationMinutes }} min</span
+                      >
+                    </div>
                   </li>
                 </ol>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
+
+          <aside class="rounded-2xl border p-5 lg:sticky lg:top-20 lg:self-start">
+            <p class="font-medium">What you will practice</p>
+            <p class="mt-2 text-sm leading-6 text-muted-foreground">
+              Predict outcomes, manipulate visual systems, explain what changed, and transfer the
+              concept to a new challenge.
+            </p>
+          </aside>
         </div>
-        <aside class="rounded-2xl border p-5 lg:sticky lg:top-20 lg:self-start">
-          <p class="font-medium">What you will practice</p>
-          <p class="mt-2 text-sm leading-6 text-muted-foreground">
-            Predict outcomes, manipulate visual systems, explain what changed, and transfer the
-            concept to a new challenge.
-          </p>
-        </aside>
       </section>
     </div>
 

@@ -40,7 +40,7 @@ function getRouteKey(route: RouteLocationNormalizedLoaded): string {
   </RouterView>
 </template>
 
-<style scoped>
+<style>
 .page-enter-active,
 .page-leave-active {
   transition:
