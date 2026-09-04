@@ -25,6 +25,10 @@
 - Do not seed or migrate user state unless an explicit migration plan is approved.
 - Persist widget interaction state by stable `lessonId + widgetId`; never persist catalog or lesson content in user state.
 - Keep pending sync mutations compacted by entity so IndexedDB can become an offline queue when the API adapter arrives.
+- Reach the backend only through the `UserStateSyncGateway` contract; IndexedDB stays the durable store and the gateway only drains its outbox.
+- Keep the app fully functional with `VITE_API_BASE_URL` unset; sync is an enhancement, never a requirement.
+- Convert state to a plain snapshot before writing it to IndexedDB; structured clone rejects Vue reactive proxies.
+- Never let a server response overwrite a record that still has a queued local mutation.
 - Render nested pages through `RoutePageTransition`; keep persistent layout navigation outside it.
 - Route transition keys ignore query parameters by default; explicitly allowlist only query changes that represent navigation, never transient search filters.
 - Every animation must provide a `prefers-reduced-motion` fallback.

@@ -98,6 +98,24 @@ lesson, and widget IDs. Schema v2 starts empty without migration and stores gran
 progress, widget state, preferences, sync metadata, and a compacted pending-mutation outbox.
 Catalog and lesson content remain build-managed files and are never copied into IndexedDB.
 
+### Backend sync
+
+IndexedDB stays the durable local store. The backend is layered on top as a `UserStateSyncGateway`
+that drains the pending-mutation outbox, so the app keeps working offline and unchanged when no
+backend is configured.
+
+Set `VITE_API_BASE_URL` to the Worker origin in `../backend` (see `.env.example`). Leaving it unset
+selects `DisabledUserStateSyncGateway` and the app is local-only.
+
+`startSyncScheduler` is called once from `App.vue`. It pulls the server snapshot after IndexedDB
+hydrates, pushes the outbox on a debounce, flushes when the network returns, and retries on an
+interval. `mergeServerSnapshot` folds the server answer back in without dropping records that still
+have queued local edits.
+
+A stable anonymous device id in IndexedDB identifies the sync target through the
+`X-Kognisie-User-Id` header. It is a placeholder until authentication is decided, and it is not a
+security boundary; see the backend README.
+
 ### Lesson content
 
 Lessons use Comark Markdown in `src/content` and render through one generic lesson route. Frontmatter
