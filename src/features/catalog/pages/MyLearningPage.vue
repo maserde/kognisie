@@ -100,6 +100,9 @@ const domainGroups = computed<LearningDomainGroup[]>(() =>
 const visibleCourseCount = computed(() =>
   domainGroups.value.reduce((total, group) => total + group.courseCount, 0),
 )
+const learningResultsKey = computed(() =>
+  [selectedStatus.value, searchQuery.value.trim().toLowerCase()].join(':'),
+)
 
 function getLearningStatusByCourse(course: CatalogCourse): LearningStatus {
   const progressPercentage = userStateStore.getCourseProgressPercentage(
@@ -167,89 +170,128 @@ onMounted(catalogStore.loadCatalog)
         </div>
       </div>
 
-      <div
-        v-if="catalogStore.isLoading || !userStateStore.isReady"
-        class="grid gap-5 md:grid-cols-2 xl:grid-cols-3"
-      >
-        <Skeleton v-for="index in 3" :key="index" class="h-80 rounded-2xl" />
-      </div>
-
-      <div v-else-if="domainGroups.length" class="flex flex-col gap-12">
-        <section
-          v-for="domainGroup in domainGroups"
-          :key="domainGroup.domainId"
-          class="flex flex-col gap-6"
-          :aria-labelledby="`learning-domain-${domainGroup.domainId}`"
-        >
+      <Transition name="learning-results" mode="out-in">
+        <div :key="learningResultsKey">
           <div
-            class="flex flex-col gap-1 border-b pb-4 sm:flex-row sm:items-end sm:justify-between"
+            v-if="catalogStore.isLoading || !userStateStore.isReady"
+            class="grid gap-5 md:grid-cols-2 xl:grid-cols-3"
           >
-            <div>
-              <h3
-                :id="`learning-domain-${domainGroup.domainId}`"
-                class="text-xl font-semibold tracking-tight"
+            <Skeleton v-for="index in 3" :key="index" class="h-80 rounded-2xl" />
+          </div>
+
+          <div v-else-if="domainGroups.length" class="flex flex-col gap-12">
+            <section
+              v-for="domainGroup in domainGroups"
+              :key="domainGroup.domainId"
+              class="flex flex-col gap-6"
+              :aria-labelledby="`learning-domain-${domainGroup.domainId}`"
+            >
+              <div
+                class="flex flex-col gap-1 border-b pb-4 sm:flex-row sm:items-end sm:justify-between"
               >
-                {{ domainGroup.domainName }}
-              </h3>
-              <p class="mt-1 text-sm text-muted-foreground">
-                {{ domainGroup.domainDescription }}
-              </p>
-            </div>
-            <span class="mt-2 text-sm text-muted-foreground sm:mt-0">
-              {{ domainGroup.courseCount }}
-              {{ domainGroup.courseCount === 1 ? 'course' : 'courses' }}
-            </span>
+                <div>
+                  <h3
+                    :id="`learning-domain-${domainGroup.domainId}`"
+                    class="text-xl font-semibold tracking-tight"
+                  >
+                    {{ domainGroup.domainName }}
+                  </h3>
+                  <p class="mt-1 text-sm text-muted-foreground">
+                    {{ domainGroup.domainDescription }}
+                  </p>
+                </div>
+                <span class="mt-2 text-sm text-muted-foreground sm:mt-0">
+                  {{ domainGroup.courseCount }}
+                  {{ domainGroup.courseCount === 1 ? 'course' : 'courses' }}
+                </span>
+              </div>
+
+              <div
+                v-for="statusGroup in domainGroup.statusGroups"
+                :key="statusGroup.status"
+                class="flex flex-col gap-4"
+              >
+                <h4 class="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  {{ statusGroup.title }}
+                </h4>
+                <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  <CourseCard
+                    v-for="course in statusGroup.courses"
+                    :key="course.id"
+                    :course="course"
+                  />
+                </div>
+              </div>
+            </section>
           </div>
 
-          <div
-            v-for="statusGroup in domainGroup.statusGroups"
-            :key="statusGroup.status"
-            class="flex flex-col gap-4"
-          >
-            <h4 class="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              {{ statusGroup.title }}
-            </h4>
-            <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              <CourseCard v-for="course in statusGroup.courses" :key="course.id" :course="course" />
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <Empty v-else class="rounded-2xl border">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <SearchX v-if="searchQuery || selectedStatus !== 'all'" />
-            <BookOpenCheck v-else />
-          </EmptyMedia>
-          <EmptyTitle>
-            {{
-              searchQuery || selectedStatus !== 'all'
-                ? 'No courses match'
-                : 'Start your first course'
-            }}
-          </EmptyTitle>
-          <EmptyDescription>
-            {{
-              searchQuery || selectedStatus !== 'all'
-                ? 'Try another search or clear the current filters.'
-                : 'Courses appear here after you start learning.'
-            }}
-          </EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
-          <Button
-            v-if="searchQuery || selectedStatus !== 'all'"
-            variant="outline"
-            @click="clearFilters"
-          >
-            Clear filters
-          </Button>
-          <Button v-else as-child>
-            <RouterLink to="/catalog">Browse catalog</RouterLink>
-          </Button>
-        </EmptyContent>
-      </Empty>
+          <Empty v-else class="rounded-2xl border">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <SearchX v-if="searchQuery || selectedStatus !== 'all'" />
+                <BookOpenCheck v-else />
+              </EmptyMedia>
+              <EmptyTitle>
+                {{
+                  searchQuery || selectedStatus !== 'all'
+                    ? 'No courses match'
+                    : 'Start your first course'
+                }}
+              </EmptyTitle>
+              <EmptyDescription>
+                {{
+                  searchQuery || selectedStatus !== 'all'
+                    ? 'Try another search or clear the current filters.'
+                    : 'Courses appear here after you start learning.'
+                }}
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button
+                v-if="searchQuery || selectedStatus !== 'all'"
+                variant="outline"
+                @click="clearFilters"
+              >
+                Clear filters
+              </Button>
+              <Button v-else as-child>
+                <RouterLink to="/catalog">Browse catalog</RouterLink>
+              </Button>
+            </EmptyContent>
+          </Empty>
+        </div>
+      </Transition>
     </section>
   </div>
 </template>
+
+<style scoped>
+.learning-results-enter-active,
+.learning-results-leave-active {
+  transition:
+    opacity 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.learning-results-enter-from {
+  opacity: 0;
+  transform: translateY(0.375rem);
+}
+
+.learning-results-leave-to {
+  opacity: 0;
+  transform: translateY(-0.25rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .learning-results-enter-active,
+  .learning-results-leave-active {
+    transition-duration: 1ms;
+  }
+
+  .learning-results-enter-from,
+  .learning-results-leave-to {
+    transform: none;
+  }
+}
+</style>

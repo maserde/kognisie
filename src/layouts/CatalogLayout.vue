@@ -27,7 +27,7 @@ const userStateStore = useUserStateStore()
         </div>
       </header>
       <main class="flex-1 p-4 sm:p-6 lg:p-8">
-        <RoutePageTransition :query-keys="['domain']" />
+        <RoutePageTransition />
       </main>
     </SidebarInset>
   </SidebarProvider>

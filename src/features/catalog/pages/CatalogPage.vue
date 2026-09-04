@@ -45,6 +45,13 @@ const courseGroups = computed(() =>
     }))
     .filter((group) => group.courses.length > 0),
 )
+const catalogResultsKey = computed(() =>
+  [
+    catalogStore.filters.domainSlug ?? 'all-domains',
+    catalogStore.filters.level ?? 'all-levels',
+    catalogStore.filters.query.trim().toLowerCase(),
+  ].join(':'),
+)
 
 function readQueryValue(value: unknown): string {
   return typeof value === 'string' ? value : ''
@@ -171,53 +178,93 @@ onMounted(catalogStore.loadCatalog)
         </div>
       </div>
 
-      <div v-if="isLoading" class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        <Skeleton v-for="index in 6" :key="index" class="h-80 rounded-2xl" />
-      </div>
+      <Transition name="catalog-results" mode="out-in">
+        <div :key="catalogResultsKey">
+          <div v-if="isLoading" class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <Skeleton v-for="index in 6" :key="index" class="h-80 rounded-2xl" />
+          </div>
 
-      <div
-        v-else-if="errorMessage"
-        class="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-destructive"
-      >
-        {{ errorMessage }}
-      </div>
-
-      <div v-else-if="filteredCourses.length" class="flex flex-col gap-10">
-        <section
-          v-for="group in courseGroups"
-          :key="group.domain.id"
-          class="flex flex-col gap-4"
-          :aria-labelledby="`domain-${group.domain.id}`"
-        >
           <div
-            class="flex flex-col gap-1 border-b pb-4 sm:flex-row sm:items-end sm:justify-between"
+            v-else-if="errorMessage"
+            class="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-destructive"
           >
-            <div>
-              <h3 :id="`domain-${group.domain.id}`" class="text-xl font-semibold tracking-tight">
-                {{ group.domain.name }}
-              </h3>
-              <p class="mt-1 text-sm text-muted-foreground">{{ group.domain.description }}</p>
-            </div>
-            <span class="mt-2 text-sm text-muted-foreground sm:mt-0">
-              {{ group.courses.length }} {{ group.courses.length === 1 ? 'course' : 'courses' }}
-            </span>
+            {{ errorMessage }}
           </div>
-          <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            <CourseCard v-for="course in group.courses" :key="course.id" :course="course" />
-          </div>
-        </section>
-      </div>
 
-      <Empty v-else class="rounded-2xl border">
-        <EmptyHeader>
-          <EmptyMedia variant="icon"><SearchX /></EmptyMedia>
-          <EmptyTitle>No courses match</EmptyTitle>
-          <EmptyDescription>Try a broader keyword or clear the current filters.</EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent
-          ><Button variant="outline" @click="clearFilters">Clear filters</Button></EmptyContent
-        >
-      </Empty>
+          <div v-else-if="filteredCourses.length" class="flex flex-col gap-10">
+            <section
+              v-for="group in courseGroups"
+              :key="group.domain.id"
+              class="flex flex-col gap-4"
+              :aria-labelledby="`domain-${group.domain.id}`"
+            >
+              <div
+                class="flex flex-col gap-1 border-b pb-4 sm:flex-row sm:items-end sm:justify-between"
+              >
+                <div>
+                  <h3
+                    :id="`domain-${group.domain.id}`"
+                    class="text-xl font-semibold tracking-tight"
+                  >
+                    {{ group.domain.name }}
+                  </h3>
+                  <p class="mt-1 text-sm text-muted-foreground">{{ group.domain.description }}</p>
+                </div>
+                <span class="mt-2 text-sm text-muted-foreground sm:mt-0">
+                  {{ group.courses.length }} {{ group.courses.length === 1 ? 'course' : 'courses' }}
+                </span>
+              </div>
+              <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                <CourseCard v-for="course in group.courses" :key="course.id" :course="course" />
+              </div>
+            </section>
+          </div>
+
+          <Empty v-else class="rounded-2xl border">
+            <EmptyHeader>
+              <EmptyMedia variant="icon"><SearchX /></EmptyMedia>
+              <EmptyTitle>No courses match</EmptyTitle>
+              <EmptyDescription
+                >Try a broader keyword or clear the current filters.</EmptyDescription
+              >
+            </EmptyHeader>
+            <EmptyContent
+              ><Button variant="outline" @click="clearFilters">Clear filters</Button></EmptyContent
+            >
+          </Empty>
+        </div>
+      </Transition>
     </section>
   </div>
 </template>
+
+<style scoped>
+.catalog-results-enter-active,
+.catalog-results-leave-active {
+  transition:
+    opacity 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.catalog-results-enter-from {
+  opacity: 0;
+  transform: translateY(0.375rem);
+}
+
+.catalog-results-leave-to {
+  opacity: 0;
+  transform: translateY(-0.25rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalog-results-enter-active,
+  .catalog-results-leave-active {
+    transition-duration: 1ms;
+  }
+
+  .catalog-results-enter-from,
+  .catalog-results-leave-to {
+    transform: none;
+  }
+}
+</style>
