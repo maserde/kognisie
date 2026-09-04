@@ -1,0 +1,8 @@
+export * from './types/lesson-content'
+export * from './repositories'
+export * from './utils/lesson-sequencing'
+export * from './widgets/widget-registry'
+export * from './routes/lesson.routes'
+export { default as LessonPage } from './pages/LessonPage.vue'
+export { default as LessonCurriculum } from './components/LessonCurriculum.vue'
+export { default as LessonTableOfContents } from './components/LessonTableOfContents.vue'
