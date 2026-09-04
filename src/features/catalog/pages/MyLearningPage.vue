@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { BookOpenCheck, SearchX } from '@lucide/vue'
 import CourseCard from '@/features/catalog/components/CourseCard.vue'
+import DomainCourseSection from '@/features/catalog/components/DomainCourseSection.vue'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -180,49 +181,35 @@ onMounted(catalogStore.loadCatalog)
           </div>
 
           <div v-else-if="domainGroups.length" class="flex flex-col gap-12">
-            <section
+            <DomainCourseSection
               v-for="domainGroup in domainGroups"
               :key="domainGroup.domainId"
-              class="flex flex-col gap-6"
-              :aria-labelledby="`learning-domain-${domainGroup.domainId}`"
+              :heading-id="`learning-domain-${domainGroup.domainId}`"
+              :name="domainGroup.domainName"
+              :description="domainGroup.domainDescription"
+              :course-count="domainGroup.courseCount"
             >
-              <div
-                class="flex flex-col gap-1 border-b pb-4 sm:flex-row sm:items-end sm:justify-between"
-              >
-                <div>
-                  <h3
-                    :id="`learning-domain-${domainGroup.domainId}`"
-                    class="text-xl font-semibold tracking-tight"
+              <div class="flex flex-col gap-8">
+                <section
+                  v-for="statusGroup in domainGroup.statusGroups"
+                  :key="statusGroup.status"
+                  class="flex flex-col gap-4"
+                >
+                  <h4
+                    class="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground"
                   >
-                    {{ domainGroup.domainName }}
-                  </h3>
-                  <p class="mt-1 text-sm text-muted-foreground">
-                    {{ domainGroup.domainDescription }}
-                  </p>
-                </div>
-                <span class="mt-2 text-sm text-muted-foreground sm:mt-0">
-                  {{ domainGroup.courseCount }}
-                  {{ domainGroup.courseCount === 1 ? 'course' : 'courses' }}
-                </span>
+                    {{ statusGroup.title }}
+                  </h4>
+                  <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                    <CourseCard
+                      v-for="course in statusGroup.courses"
+                      :key="course.id"
+                      :course="course"
+                    />
+                  </div>
+                </section>
               </div>
-
-              <div
-                v-for="statusGroup in domainGroup.statusGroups"
-                :key="statusGroup.status"
-                class="flex flex-col gap-4"
-              >
-                <h4 class="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  {{ statusGroup.title }}
-                </h4>
-                <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                  <CourseCard
-                    v-for="course in statusGroup.courses"
-                    :key="course.id"
-                    :course="course"
-                  />
-                </div>
-              </div>
-            </section>
+            </DomainCourseSection>
           </div>
 
           <Empty v-else class="rounded-2xl border">

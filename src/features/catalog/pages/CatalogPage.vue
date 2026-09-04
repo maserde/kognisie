@@ -5,6 +5,7 @@ import { SearchX } from '@lucide/vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import CourseCard from '@/features/catalog/components/CourseCard.vue'
+import DomainCourseSection from '@/features/catalog/components/DomainCourseSection.vue'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -192,32 +193,18 @@ onMounted(catalogStore.loadCatalog)
           </div>
 
           <div v-else-if="filteredCourses.length" class="flex flex-col gap-10">
-            <section
+            <DomainCourseSection
               v-for="group in courseGroups"
               :key="group.domain.id"
-              class="flex flex-col gap-4"
-              :aria-labelledby="`domain-${group.domain.id}`"
+              :heading-id="`domain-${group.domain.id}`"
+              :name="group.domain.name"
+              :description="group.domain.description"
+              :course-count="group.courses.length"
             >
-              <div
-                class="flex flex-col gap-1 border-b pb-4 sm:flex-row sm:items-end sm:justify-between"
-              >
-                <div>
-                  <h3
-                    :id="`domain-${group.domain.id}`"
-                    class="text-xl font-semibold tracking-tight"
-                  >
-                    {{ group.domain.name }}
-                  </h3>
-                  <p class="mt-1 text-sm text-muted-foreground">{{ group.domain.description }}</p>
-                </div>
-                <span class="mt-2 text-sm text-muted-foreground sm:mt-0">
-                  {{ group.courses.length }} {{ group.courses.length === 1 ? 'course' : 'courses' }}
-                </span>
-              </div>
               <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                 <CourseCard v-for="course in group.courses" :key="course.id" :course="course" />
               </div>
-            </section>
+            </DomainCourseSection>
           </div>
 
           <Empty v-else class="rounded-2xl border">
